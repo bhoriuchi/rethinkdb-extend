@@ -1,73 +1,6 @@
-/*
-
-// unique config for insert/update
-const unique = [
-  'id',
-  'foo',
-  [ 'foo', 'bar' ]
-];
-
-
-// unique config for global
-const globalOptions = {
-  constraints: {
-    dbName: {
-      tableName: {
-        unique: [...]
-      }
-    }
-  }
-}
-*/
 import _ from 'lodash';
 import docFilter from 'rethinkdb-doc-filter';
-
-function debug(data) {
-  if (process.env.DEBUG) {
-    return _.isError(data) ?
-      process.stderr.write(data.toString()) :
-      process.stdout.write(String(data));
-  }
-}
-
-function rpath(base, parts) {
-  return parts.prepend(base).reduce((accum, part) => {
-    return accum(part);
-  }).default(null);
-}
-
-/**
- * Checkd for a unique violation
- * @param {*} r - top-level namespace
- * @param {*} selection - table to check for violations
- * @param {*} unique - unique paths to check
- * @param {*} object - record(s) to insert
- */
-function violatesUnique(r, selection, unique, data, method, primaryKey = 'id') {
-  if (!data) {
-    return r.expr([]);
-  }
-
-  /**
-   * TODO:
-   * evaluate documents for violation among itself
-   * support functions
-   * support update and replace
-   */
-  if (method === 'insert') {
-    r.expr(unique).prepend([]).reduce((accum, path) => {
-      return rpath(r.expr(_.castArray(data)), path)
-      .setIntersection(rpath(selection.coerceTo('ARRAY'), path))
-      .do(values => {
-        return values.count().ne(0).branch(
-          accum.append({ path, values }),
-          accum
-        );
-      });
-    });
-  }
-  return r.expr([]);
-}
+import { rpath, debug, uniqueViolations } from './utilities';
 
 function wrap(r, selection, globalOpts, parentState = {}) {
   const state = _.cloneDeep(parentState);
@@ -110,17 +43,22 @@ function wrap(r, selection, globalOpts, parentState = {}) {
               [ 'constraints', db, state.table, 'unique' ],
               opts.unique
             );
+            const primaryKey = _.get(
+              globalOpts,
+              [ 'constraints', db, state.table, primaryKey ],
+              opts.primaryKey
+            );
 
             return _.isArray(unique) && unique.length ?
               wrap(
                 r,
-                violatesUnique(
+                uniqueViolations(
                   r,
                   target,
                   unique,
-                  objects,
+                  _.castArray(objects),
                   property,
-                  opts.primaryKey
+                  _.isString(primaryKey) ? primaryKey : 'id'
                 )
                 .do(violations => {
                   return violations.count().ne(0).branch(
