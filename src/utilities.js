@@ -62,43 +62,46 @@ export function uniqueViolations(
   unique,
   data,
   command,
-  primaryKey
+  primaryKey,
+  state
 ) {
-  return r.expr(expandUnique(unique)).prepend([])
-  .reduce((violations, configs) => {
-    return r.expr(data).do(docs => {
-      return docs.prepend([]).reduce((docMatch, doc) => {
-        return docs.difference([ doc ]).setUnion(selection.coerceTo('ARRAY'))
-        .prepend([]).reduce((values, value) => {
-          return configs.prepend([]).reduce((matches, config) => {
-            return config('ignoreCase').branch(
-              rpath(value, config('path')).match(
-                r.add('(?i)^', rpath(doc, config('path')), '$')
-              ),
-              rpath(value, config('path')).eq(rpath(doc, config('path')))
-            )
-            .branch(
-              matches.append({
-                path: config('path'),
-                value: rpath(value, config('path'))
-              }),
-              matches
-            );
-          })
-          .do(cmatch => {
-            return cmatch.count().ge(configs.count()).branch(
-              values.append(cmatch),
-              values
-            );
+  if (command === 'insert') {
+    return r.expr(expandUnique(unique)).prepend([])
+    .reduce((violations, configs) => {
+      return r.expr(_.castArray(data)).do(docs => {
+        return docs.prepend([]).reduce((docMatch, doc) => {
+          return docs.difference([ doc ]).setUnion(selection.coerceTo('ARRAY'))
+          .prepend([]).reduce((values, value) => {
+            return configs.prepend([]).reduce((matches, config) => {
+              return config('ignoreCase').branch(
+                rpath(value, config('path')).match(
+                  r.add('(?i)^', rpath(doc, config('path')), '$')
+                ),
+                rpath(value, config('path')).eq(rpath(doc, config('path')))
+              )
+              .branch(
+                matches.append({
+                  path: config('path'),
+                  value: rpath(value, config('path'))
+                }),
+                matches
+              );
+            })
+            .do(cmatch => {
+              return cmatch.count().ge(configs.count()).branch(
+                values.append(cmatch),
+                values
+              );
+            });
           });
         });
+      })
+      .do(matchValues => {
+        return matchValues.count().ne(0).branch(
+          violations.append(matchValues.nth(0)),
+          violations
+        );
       });
-    })
-    .do(matchValues => {
-      return matchValues.count().ne(0).branch(
-        violations.append(matchValues.nth(0)),
-        violations
-      );
     });
-  });
+  }
 }

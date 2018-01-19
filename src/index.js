@@ -34,7 +34,7 @@ function wrap(r, selection, globalOpts, parentState = {}) {
         case 'insert':
         case 'update':
         case 'replace':
-          return function (objects, options) {
+          return function (value, options) {
             const opts = Object.assign({}, options);
             const insertOpts = _.omit(opts, [ 'unique', 'primaryKey' ]);
             const db = state.db || globalOpts.db || 'test';
@@ -56,20 +56,21 @@ function wrap(r, selection, globalOpts, parentState = {}) {
                   r,
                   target,
                   unique,
-                  _.castArray(objects),
+                  value,
                   property,
-                  _.isString(primaryKey) ? primaryKey : 'id'
+                  _.isString(primaryKey) ? primaryKey : 'id',
+                  state
                 )
                 .do(violations => {
                   return violations.count().ne(0).branch(
                     r.error(r.add('Unique violations: ', violations.toJSON())),
-                    target.insert(objects, insertOpts)
+                    target.insert(value, insertOpts)
                   );
                 }),
                 globalOpts,
                 state
               ) :
-              wrap(r, target.insert(objects, insertOpts), globalOpts, state);
+              wrap(r, target.insert(value, insertOpts), globalOpts, state);
           };
 
         default:
