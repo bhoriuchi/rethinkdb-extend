@@ -1,0 +1,50 @@
+{
+  "name": "rethinkdb-extend",
+  "version": "0.1.0",
+  "description": "Extend RethinkDB driver with additional features",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint src",
+    "test": "babel-node ./node_modules/.bin/_mocha $npm_package_options_mocha",
+    "build": "npm run lint && npm run test && babel src --optional runtime --ignore __tests__ --out-dir dist/ && cp package.json dist/ && cp README.md dist/",
+    "scratch": "babel-node src/__tests__/scratch.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhoriuchi/rethinkdb-extend.git"
+  },
+  "options": {
+    "mocha": "--check-leaks --full-trace src/**/__tests__/**/*-test.js"
+  },
+  "keywords": [
+    "rethink",
+    "rethinkdb",
+    "extend",
+    "distinct"
+  ],
+  "author": "Branden Horiuchi <bhoriuchi@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bhoriuchi/rethinkdb-extend/issues"
+  },
+  "homepage": "https://github.com/bhoriuchi/rethinkdb-extend#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-eslint": "^8.1.2",
+    "babel-plugin-syntax-async-functions": "^6.13.0",
+    "babel-plugin-syntax-async-generators": "^6.13.0",
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "chai": "^4.1.2",
+    "eslint": "^4.14.0",
+    "eslint-plugin-babel": "^4.1.2",
+    "mocha": "^4.1.0",
+    "rethinkdb": "^2.3.3",
+    "rethinkdbdash": "^2.3.31"
+  },
+  "dependencies": {
+    "lodash": "^4.17.4",
+    "rethinkdb-doc-filter": "^0.2.0"
+  }
+}
